@@ -21,16 +21,17 @@ export async function GET(req: NextRequest) {
       console.log('Connected accounts query notice:', e);
     }
 
-    if (!accounts || accounts.length === 0) {
-      const usernamePrefix = authUser.name ? authUser.name.toLowerCase().replace(/\s+/g, '') : authUser.email.split('@')[0];
+    const isDemo = authUser.email === 'demo@redsoftware.in';
+
+    if ((!accounts || accounts.length === 0) && isDemo) {
       accounts = [
         {
           id: 'acc_ig_default',
           userId: authUser.userId,
           provider: 'INSTAGRAM',
           providerAccountId: 'ig_101',
-          providerUsername: `${usernamePrefix}_official`,
-          avatarUrl: authUser.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+          providerUsername: 'alex.morgan_official',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
           connectedAt: new Date().toISOString(),
         },
         {
@@ -38,14 +39,14 @@ export async function GET(req: NextRequest) {
           userId: authUser.userId,
           provider: 'FACEBOOK',
           providerAccountId: 'fb_102',
-          providerUsername: usernamePrefix,
-          avatarUrl: authUser.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+          providerUsername: 'Alex Morgan',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
           connectedAt: new Date().toISOString(),
         },
       ];
     }
 
-    return NextResponse.json({ accounts });
+    return NextResponse.json({ accounts: accounts || [] });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch connected accounts' }, { status: 500 });
   }

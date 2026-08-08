@@ -33,11 +33,7 @@ export async function POST(req: NextRequest) {
     if (user) {
       isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     } else if (cleanEmail === 'demo@redsoftware.in') {
-      // Demo fallback password check
       isPasswordValid = password === 'Password123!';
-    } else if (password.length >= 6) {
-      // Serverless fallback for newly created accounts
-      isPasswordValid = true;
     }
 
     if (!isPasswordValid) {
@@ -45,8 +41,8 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = user?.id || `usr_${Date.now()}`;
-    const name = user?.name || cleanEmail.split('@')[0];
-    const avatarUrl = user?.avatarUrl || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=300`;
+    const name = user?.name || (cleanEmail === 'demo@redsoftware.in' ? 'Alex Morgan' : cleanEmail.split('@')[0]);
+    const avatarUrl = user?.avatarUrl || (cleanEmail === 'demo@redsoftware.in' ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300' : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=300');
 
     const deviceInfo = parseDeviceInfo(req);
     const sessionToken = `session_${userId}_${Date.now()}`;
@@ -82,8 +78,8 @@ export async function POST(req: NextRequest) {
       userId,
       email: cleanEmail,
       name,
-      phone: user?.phone || undefined,
-      dateOfBirth: user?.dateOfBirth || undefined,
+      phone: user?.phone || (cleanEmail === 'demo@redsoftware.in' ? '+1 (555) 234-5678' : undefined),
+      dateOfBirth: user?.dateOfBirth || (cleanEmail === 'demo@redsoftware.in' ? '1995-06-15' : undefined),
       avatarUrl,
       is2FAEnabled: user ? Boolean(user.is2FAEnabled) : true,
       sessionId: sessionToken,

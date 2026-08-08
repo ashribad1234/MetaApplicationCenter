@@ -37,6 +37,27 @@ export async function GET(req: NextRequest) {
       updatedAt: user?.updatedAt || new Date().toISOString(),
     };
 
+    const isDemo = userData.email === 'demo@redsoftware.in';
+
+    const defaultConnected = isDemo
+      ? [
+          {
+            id: 'acc_ig_1',
+            provider: 'INSTAGRAM',
+            providerAccountId: 'ig_demo',
+            providerUsername: 'alex.morgan_official',
+            avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+          },
+          {
+            id: 'acc_fb_2',
+            provider: 'FACEBOOK',
+            providerAccountId: 'fb_demo',
+            providerUsername: 'Alex Morgan',
+            avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+          },
+        ]
+      : [];
+
     return NextResponse.json({
       user: userData,
       privacySetting: user?.privacySetting || {
@@ -46,22 +67,7 @@ export async function GET(req: NextRequest) {
         personalizedAds: true,
         dataSharing: false,
       },
-      connectedAccounts: user?.connectedAccounts || [
-        {
-          id: 'acc_ig_1',
-          provider: 'INSTAGRAM',
-          providerAccountId: 'ig_demo',
-          providerUsername: `${userData.name.toLowerCase().replace(/\s+/g, '.')}_official`,
-          avatarUrl: userData.avatarUrl,
-        },
-        {
-          id: 'acc_fb_2',
-          provider: 'FACEBOOK',
-          providerAccountId: 'fb_demo',
-          providerUsername: userData.name,
-          avatarUrl: userData.avatarUrl,
-        },
-      ],
+      connectedAccounts: user?.connectedAccounts || defaultConnected,
       sessions: user?.sessions || [
         {
           id: authUser.sessionId || 'session_current',
