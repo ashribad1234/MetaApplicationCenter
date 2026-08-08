@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(uuid())
+  name              String
+  email             String             @unique
+  passwordHash      String
+  phone             String?
+  dateOfBirth       String?
+  avatarUrl         String?
+  is2FAEnabled      Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  connectedAccounts ConnectedAccount[]
+  sessions          UserSession[]
+  privacySetting    PrivacySetting?
+  activityLogs      ActivityLog[]
+}
+
+model ConnectedAccount {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String   // 'FACEBOOK', 'INSTAGRAM', 'WHATSAPP'
+  providerAccountId String
+  providerUsername  String
+  avatarUrl         String?
+  connectedAt       DateTime @default(now())
+}
+
+model UserSession {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token            String   @unique
+  deviceName       String
+  deviceType       String   // 'Desktop', 'Mobile', 'Tablet'
+  browser          String
+  os               String
+  ipAddress        String
+  lastActiveAt     DateTime @default(now())
+  createdAt        DateTime @default(now())
+}
+
+model PrivacySetting {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileVisibility     String   @default("EVERYONE") // 'EVERYONE', 'FRIENDS', 'ONLY_ME'
+  emailVisibility       String   @default("ONLY_ME")
+  phoneVisibility       String   @default("ONLY_ME")
+  personalizedAds       Boolean  @default(true)
+  dataSharing           Boolean  @default(false)
+  updatedAt             DateTime @updatedAt
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionType  String   // 'LOGIN', 'PASSWORD_CHANGE', 'PROFILE_UPDATE', 'ACCOUNT_CONNECTED', 'ACCOUNT_DISCONNECTED', 'PRIVACY_UPDATE', 'SESSION_REVOKED'
+  description String
+  ipAddress   String
+  deviceName  String
+  browser     String
+  createdAt   DateTime @default(now())
+}
