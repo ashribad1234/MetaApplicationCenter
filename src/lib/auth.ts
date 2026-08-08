@@ -8,6 +8,12 @@ const JWT_SECRET = new TextEncoder().encode(
 export interface JWTPayload {
   userId: string;
   email: string;
+  name?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  avatarUrl?: string;
+  is2FAEnabled?: boolean;
+  passwordHash?: string;
   sessionId?: string;
   [key: string]: any;
 }
@@ -30,7 +36,6 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 }
 
 export async function getAuthUser(req: NextRequest): Promise<JWTPayload | null> {
-  // Check Authorization header or Cookie
   const authHeader = req.headers.get('authorization');
   let token: string | null = null;
 
