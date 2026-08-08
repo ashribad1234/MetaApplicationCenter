@@ -4,6 +4,11 @@ const nextConfig = {
   images: {
     domains: ['images.unsplash.com', 'avatars.githubusercontent.com', 'graph.facebook.com'],
   },
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/**/*': ['./prisma/dev.db', './dev.db'],
+    },
+  },
 };
 
 module.exports = nextConfig;
