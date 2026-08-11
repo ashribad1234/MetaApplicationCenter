@@ -78,18 +78,31 @@ export async function POST(req: NextRequest) {
       provider: formattedProvider,
       providerAccountId: `mock_${formattedProvider.toLowerCase()}_${Date.now()}`,
       providerUsername: username,
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+      avatarUrl: authUser.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
       connectedAt: new Date().toISOString(),
     };
 
     try {
+      // Ensure parent User record exists in SQLite to satisfy Prisma foreign key constraint
+      await prisma.user.upsert({
+        where: { id: authUser.userId },
+        update: {},
+        create: {
+          id: authUser.userId,
+          name: authUser.name || authUser.email.split('@')[0],
+          email: authUser.email,
+          passwordHash: '$2a$10$MockHashPlaceholderForServerless1234567890123456',
+          avatarUrl: authUser.avatarUrl,
+        },
+      });
+
       newAccount = await prisma.connectedAccount.create({
         data: {
           userId: authUser.userId,
           provider: formattedProvider,
           providerAccountId: `mock_${formattedProvider.toLowerCase()}_${Date.now()}`,
           providerUsername: username,
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+          avatarUrl: authUser.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
         },
       });
 
@@ -130,7 +143,12 @@ export async function DELETE(req: NextRequest) {
     }
 
     try {
-      await prisma.connectedAccount.delete({ where: { id } });
+      await prisma.connectedAccount.deleteMany({
+        where: {
+          id,
+          userId: authUser.userId,
+        },
+      });
     } catch (e) {
       console.log('Delete account notice:', e);
     }

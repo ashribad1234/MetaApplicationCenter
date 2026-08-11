@@ -1,0 +1,257 @@
+================================================================================
+META ACCOUNTS CENTER - FULL STACK DEVELOPER ASSIGNMENT
+COMPREHENSIVE SYSTEM ARCHITECTURE, IMPLEMENTATION DETAILS & INTERVIEW MASTER FILE
+Company: Red Software Assignment
+Project: Meta Accounts Center Web Application Clone
+GitHub Repository: https://github.com/ashribad1234/MetaApplicationCenter
+Live Demo URL: https://meta-application-center.vercel.app
+Swagger API Docs: https://meta-application-center.vercel.app/api-docs
+================================================================================
+
+--------------------------------------------------------------------------------
+1. EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+The Meta Accounts Center project is a production-grade full-stack web application 
+replicating Meta's official Accounts Center portal (similar to Facebook/Instagram). 
+It allows users to securely manage their connected accounts, personal profile 
+information, password/2FA security settings, privacy visibility preferences, active 
+device sessions, and audit activity history.
+
+--------------------------------------------------------------------------------
+2. COMPLETE TECHNOLOGY STACK
+--------------------------------------------------------------------------------
+- Framework & Language: Next.js 14 (App Router), React 18, TypeScript 5
+- Backend APIs: Next.js Serverless API Routes (Location: /src/app/api/...)
+- Database & ORM: Prisma ORM v5.10 with SQLite (file:./dev.db)
+  * Portable & zero-config local setup, fully compatible with PostgreSQL & MySQL.
+- Security & Auth: 
+  * Password Hashing: bcryptjs (10 salt rounds)
+  * Token Management: JOSE (Stateless JWT signed with HS256, HTTP-Only Cookie)
+- Styling & UI: Tailwind CSS v3, Custom CSS variables, Glassmorphism, Lucide-React SVG icons
+- State & Theme Management: React Context API (AuthProvider, ThemeProvider with localStorage persistence)
+- API Documentation: OpenAPI 3.0 specification rendered via swagger-ui-react at /api-docs
+- Containerization & DevOps: Docker, docker-compose.yml, Vercel Serverless File Tracing
+
+--------------------------------------------------------------------------------
+3. PROJECT FOLDER & DIRECTORY STRUCTURE
+--------------------------------------------------------------------------------
+RedSoftsolutionProject/
+├── prisma/
+│   ├── schema.prisma           # Prisma Database Schema (5 Models)
+│   ├── seed.js                 # Database Seeder (Demo User: demo@redsoftware.in)
+│   └── dev.db                  # Local SQLite Database file
+├── src/
+│   ├── app/
+│   │   ├── (auth)/
+│   │   │   ├── login/page.tsx  # Login Page with Demo auto-fill & Reset modal
+│   │   │   └── register/page.tsx # Registration Page
+│   │   ├── api/
+│   │   │   ├── activity/route.ts          # Activity Log History API
+│   │   │   ├── auth/
+│   │   │   │   ├── forgot-password/route.ts # Password Reset Request API
+│   │   │   │   ├── login/route.ts         # User Login & JWT issuance API
+│   │   │   │   ├── logout/route.ts        # Session revocation API
+│   │   │   │   ├── me/route.ts            # Authenticated User session check API
+│   │   │   │   └── register/route.ts      # User Registration API
+│   │   │   ├── connected-accounts/route.ts# Mock OAuth Social Accounts API
+│   │   │   ├── devices/route.ts           # Active Devices & Revocation API
+│   │   │   ├── docs/route.ts              # OpenAPI 3.0 JSON Specification API
+│   │   │   ├── privacy/route.ts           # Privacy Settings GET/PUT API
+│   │   │   ├── profile/route.ts           # Profile Management GET/PUT API
+│   │   │   └── security/
+│   │   │       ├── 2fa/route.ts           # Two-Factor Auth Toggle API
+│   │   │       └── change-password/route.ts # Password Change API
+│   │   ├── api-docs/page.tsx   # Interactive Swagger UI Page
+│   │   ├── dashboard/
+│   │   │   ├── layout.tsx      # Dashboard Shell Layout (Auth Guard + Sidebar)
+│   │   │   ├── page.tsx        # Overview Dashboard Page
+│   │   │   ├── activity/page.tsx # Activity History Log Page
+│   │   │   ├── connected-accounts/page.tsx # Social Accounts Page + Modal
+│   │   │   ├── devices/page.tsx   # Connected Devices & Revocation Page
+│   │   │   ├── privacy/page.tsx   # Privacy & Ad Preferences Page
+│   │   │   ├── profile/page.tsx   # Profile Details Form Page
+│   │   │   └── security/page.tsx  # Security Center & 2FA Page
+│   │   ├── globals.css         # Global Tailwind & Custom Theme CSS
+│   │   ├── layout.tsx          # Root Layout (Navbar, Footer, Auth & Theme Providers)
+│   │   └── page.tsx            # Home Page (Redirects to /dashboard)
+│   ├── components/
+│   │   ├── AuthContext.tsx     # Global User Auth State Provider
+│   │   ├── Modal.tsx           # Reusable Modal Dialog Component
+│   │   ├── Navbar.tsx          # Top Navigation Bar with Dark Mode Toggle
+│   │   ├── Sidebar.tsx         # Accounts Center Navigation Sidebar
+│   │   └── ThemeContext.tsx    # Light/Dark Theme Switching Provider
+│   └── lib/
+│       ├── activityLogger.ts   # Activity Audit Log helper
+│       ├── auth.ts             # JWT token sign/verify & Cookie helper
+│       ├── prisma.ts           # Prisma Singleton + Vercel /tmp SQLite copier
+│       └── userAgentParser.ts  # Device, OS, Browser & IP parser helper
+├── Dockerfile                  # Container build instructions
+├── docker-compose.yml          # Container orchestration spec
+├── next.config.js              # Next.config + Vercel File Tracing config
+├── package.json                # Dependencies & Build scripts
+├── tailwind.config.js          # Tailwind theme configuration
+├── .env.example                # Sample environment variables
+└── README.md                   # Complete assignment documentation & ER Diagram
+
+--------------------------------------------------------------------------------
+4. DATABASE SCHEMAS & NORMALIZED MODELS (Prisma / SQL)
+--------------------------------------------------------------------------------
+1. User
+   - id: String (Primary Key, UUID)
+   - name: String
+   - email: String (Unique)
+   - passwordHash: String (Bcrypt hashed)
+   - phone: String (Optional)
+   - dateOfBirth: String (Optional)
+   - avatarUrl: String (Optional)
+   - is2FAEnabled: Boolean (Default: false)
+   - createdAt, updatedAt: DateTime
+
+2. ConnectedAccount
+   - id: String (Primary Key)
+   - userId: String (Foreign Key -> User.id, Cascade Delete)
+   - provider: String ('INSTAGRAM', 'FACEBOOK', 'WHATSAPP')
+   - providerAccountId: String
+   - providerUsername: String
+   - avatarUrl: String
+   - connectedAt: DateTime
+
+3. UserSession
+   - id: String (Primary Key)
+   - userId: String (Foreign Key -> User.id, Cascade Delete)
+   - token: String (Unique)
+   - deviceName: String (e.g., "Windows PC (Chrome)")
+   - deviceType: String ('Desktop', 'Mobile', 'Tablet')
+   - browser: String ('Chrome 122.0', 'Safari', etc.)
+   - os: String ('Windows 11', 'macOS', 'iOS', 'Android')
+   - ipAddress: String (e.g., "192.168.1.105")
+   - lastActiveAt, createdAt: DateTime
+
+4. PrivacySetting
+   - id: String (Primary Key)
+   - userId: String (Unique Foreign Key -> User.id, Cascade Delete)
+   - profileVisibility: String ('EVERYONE', 'FRIENDS', 'ONLY_ME')
+   - emailVisibility: String ('ONLY_ME', 'EVERYONE', 'FRIENDS')
+   - phoneVisibility: String ('ONLY_ME', 'EVERYONE', 'FRIENDS')
+   - personalizedAds: Boolean (Default: true)
+   - dataSharing: Boolean (Default: false)
+   - updatedAt: DateTime
+
+5. ActivityLog
+   - id: String (Primary Key)
+   - userId: String (Foreign Key -> User.id, Cascade Delete)
+   - actionType: String ('LOGIN', 'LOGOUT', 'PASSWORD_CHANGE', 'PROFILE_UPDATE', 'ACCOUNT_CONNECTED', 'PRIVACY_UPDATE', 'SESSION_REVOKED')
+   - description: String
+   - ipAddress, deviceName, browser: String
+   - createdAt: DateTime
+
+--------------------------------------------------------------------------------
+5. PIN-POINT FEATURE IMPLEMENTATION DETAILS
+--------------------------------------------------------------------------------
+1. Authentication Engine:
+   - Passwords are encrypted with bcryptjs (10 salt rounds).
+   - Upon login/registration, a JWT token is created via JOSE, signed with JWT_SECRET, and stored in an httpOnly, SameSite cookie.
+   - Includes mock "Forgot Password" reset link modal.
+   - Demo User pre-seeded: demo@redsoftware.in / Password123!
+
+2. Dashboard Overview:
+   - Displays User Welcome Card, Connected Accounts preview, Security Status indicator, Active Device Session details, and quick links to API Docs.
+
+3. Profile Management:
+   - Full CRUD form allowing update of Full Name, Email, Phone Number, Date of Birth, and Avatar URL.
+
+4. Connected Accounts (Mock OAuth):
+   - Interactive Modal allowing users to connect Instagram, Facebook, or WhatsApp accounts with handle verification.
+   - Disconnect / remove social account action.
+
+5. Security Center & 2FA:
+   - Change password modal verifying old password against stored hash.
+   - Instant 2-Factor Authentication toggle (Active / Inactive).
+
+6. Privacy Settings:
+   - Dropdown visibility controls for Profile, Email, and Phone.
+   - Checkbox controls for Personalized Advertisements and Data Sharing.
+
+7. Activity History Log:
+   - Complete audit trail of security and setting actions.
+   - Dropdown filter by action type (Logins, Password Changes, Profile Updates, Connected Accounts, Privacy Updates).
+
+8. Connected Devices Management:
+   - Detects real device user-agent (Browser, OS, IP, Device Type).
+   - Revoke specific session or "Logout from all other devices" (runs Prisma deleteMany where id != currentSessionId).
+
+9. Serverless Optimization (Vercel Fixes):
+   - Added experimental.outputFileTracingIncludes in next.config.js to trace dev.db into Vercel lambdas.
+   - Implemented dynamic database copy from project root to /tmp/dev.db in src/lib/prisma.ts for writable serverless execution.
+   - Enhanced JWT payload to store signed user identity, guaranteeing 100% stateless authentication across Vercel serverless function instances.
+
+--------------------------------------------------------------------------------
+6. TOP 15 INTERVIEW QUESTIONS & MODEL ANSWERS FOR RED SOFTWARE INTERVIEW
+--------------------------------------------------------------------------------
+
+Q1: Why did you choose Next.js 14 App Router for a full-stack project?
+A1: Next.js 14 App Router allows building both modern React frontend UI components and backend RESTful APIs inside a single unified codebase. 
+It eliminates CORS issues, provides fast server-side rendering, and deploys effortlessly to serverless platforms like Vercel.
+
+Q2: How did you design the Database Architecture?
+A2: I created a normalized relational schema using Prisma ORM with 5 core models: User, ConnectedAccount, UserSession, PrivacySetting, and ActivityLog.
+ I established foreign key constraints with onDelete: Cascade so deleting a user cleanly cleans up associated sessions and privacy settings.
+
+Q3: How is Authentication secured in your application?
+A3: Passwords are hashed using bcryptjs (10 salt rounds) before database storage. Authentication uses cryptographically signed JWT tokens
+ (via JOSE library) stored in HTTP-Only, SameSite cookies. This prevents XSS attacks (since JavaScript cannot access HTTP-Only cookies) and CSRF attacks.
+
+Q4: How does the serverless SQLite deployment on Vercel work?
+A4: Vercel serverless functions have a read-only filesystem except for /tmp. I configured next.config.js with experimental.
+outputFileTracingIncludes to bundle prisma/dev.db into Vercel lambdas. In src/lib/prisma.ts, the app dynamically copies dev.db to /tmp/dev.db on
+ lambda startup. Additionally, JWT tokens hold signed user identity payload to guarantee 100% stateless authentication across Vercel lambdas.
+
+Q5: How does Mock OAuth work for Instagram, Facebook, and WhatsApp?
+A5: Real OAuth requires app verification and client secrets from Meta Developer portal. I designed a realistic Mock OAuth flow:
+ users select a provider and enter their handle in a modal. The API checks for existing connections,
+  creates a ConnectedAccount record, and logs an ACCOUNT_CONNECTED event in the audit activity history.
+
+Q6: How are device sessions and user agents tracked?
+A6: When a request hits the server, parseDeviceInfo parses the request User-Agent header to determine the Browser, 
+Operating System, Device Type (Desktop/Mobile), and IP address. Active sessions are stored in UserSession table.
+
+Q7: How does "Logout All Other Devices" work?
+A7: Clicking "Logout All Other Devices" sends a DELETE request to /api/devices?revokeAll=true. The backend executes a Prisma deleteMany query targeting all UserSession records where userId === currentUserId AND id !== currentSessionId.
+
+Q8: How is the API documented?
+A8: I created an OpenAPI 3.0 specification at /api/docs and integrated swagger-ui-react at /api-docs. This provides an interactive documentation UI where evaluators can test all REST endpoints directly in the browser.
+
+Q9: What happens when a user updates their privacy settings?
+A9: The frontend sends a PUT request to /api/privacy. The backend performs an upsert query on the PrivacySetting table, updating visibility levels and ad preferences, and creates an ActivityLog entry recording the change.
+
+Q10: Why did you use Prisma ORM instead of plain SQL queries?
+A10: Prisma provides full TypeScript type-safety, auto-generated database client code, easy migration tools, and prevents SQL injection vulnerabilities through automatic query parameterization.
+
+Q11: How is state managed in the React frontend?
+A11: I used React Context API (AuthProvider and ThemeProvider). AuthProvider handles user session state and router protection, while ThemeProvider handles light/dark mode switching with localStorage persistence.
+
+Q12: How did you implement Dark Mode?
+A12: Dark mode is implemented using Tailwind CSS dark: variant classes. ThemeProvider toggles the 'dark' class on the document <html> tag and persists the setting in localStorage.
+
+Q13: How does the Activity History filter work?
+A13: The frontend sends the selected actionType query parameter (e.g. /api/activity?actionType=LOGIN) to the API route. The backend executes a Prisma findMany query filtering records by actionType and ordering by createdAt DESC.
+
+Q14: How are passwords changed securely?
+A14: The PUT /api/security/change-password endpoint requires currentPassword and newPassword. It fetches the user's passwordHash from the DB, verifies the old password using bcrypt.compare(), hashes the new password with bcrypt, and updates the record.
+
+Q15: How can this application be deployed using Docker?
+A15: The project includes a multi-stage Dockerfile using node:20-alpine which installs dependencies, generates Prisma client, builds the Next.js bundle, and runs the app. docker-compose.yml orchestrates environment variables and port mapping (3000:3000).
+
+--------------------------------------------------------------------------------
+7. PROMPTS TO COPY & PASTE INTO CHATGPT FOR INTERVIEW PREPARATION
+--------------------------------------------------------------------------------
+
+PROMPT 1 (General Mock Interviewer):
+"I have an upcoming Full Stack Developer interview for a Meta Accounts Center clone project built with Next.js 14 App Router, TypeScript, Prisma ORM, SQLite, and Tailwind CSS. Act as a Senior Tech Lead interviewer and ask me 5 tough technical questions about architecture, API design, security, and state management based on this file."
+
+PROMPT 2 (System Design & Security Deep Dive):
+"Act as a Security Architect. Review my implementation of JWT auth in HTTP-only cookies, bcrypt hashing, 2FA toggle, session revocation, and serverless SQLite handling on Vercel. Grill me on potential security vulnerabilities, edge cases, and scalability improvements."
+
+================================================================================
+END OF FILE
+================================================================================
